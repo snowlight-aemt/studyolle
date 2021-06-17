@@ -1,13 +1,19 @@
 package com.studyolle.domain;
 
 import com.studyolle.account.UserAccount;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 
 @NamedEntityGraph(
         name = "Event.withEnrollments",
@@ -48,7 +54,7 @@ public class Event {
     private Integer limitOfEnrollments;
 
     @OneToMany(mappedBy = "event")
-    private List<Enrollment> enrollments;
+    private List<Enrollment> enrollments = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private EventType eventType;
@@ -92,5 +98,23 @@ public class Event {
 
     public long getNumberOfAcceptedEnrollments() {
         return this.enrollments.stream().filter(Enrollment::isAccepted).count();
+    }
+
+    public boolean isAbleToAcceptAutomaticallyEnrollment() {
+        return eventType == EventType.FCFS
+                && endDateTime.isAfter(LocalDateTime.now()) 
+                && endEnrollmentDateTime.isAfter(LocalDateTime.now()) 
+                && limitOfEnrollments - enrollments.stream().filter(Enrollment::isAccepted).count() > 0;
+    }
+
+    public void removeEnrollment(Enrollment enrollment) {
+        enrollments.remove(enrollment);
+        
+        if (enrollment.isAccepted()) {
+            enrollments.stream()
+                .filter(Predicate.not(Enrollment::isAccepted))
+                .sorted(Comparator.comparing(Enrollment::getEnrolledAt))
+                .findFirst().ifPresent(enrollmentToAccept -> enrollmentToAccept.setAccepted(true));
+        }
     }
 }

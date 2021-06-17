@@ -93,6 +93,22 @@ public class EventController {
         return "study/events";
     }
 
+    @PostMapping("/events/{id}/enroll")
+    public String createEnrollment(@CurrentAccount Account account, @PathVariable String path, @PathVariable Long id) {
+        Study study = studyRepository.findByPath(path);
+        Event event = eventRepository.findById(id).orElseThrow();
+        eventService.createEnrollment(event, account);
+        return "redirect:/study/"+ study.getEncodedPath() +"/events/"+ event.getId();
+    }
+
+    @PostMapping("/events/{id}/leave")
+    public String removeEnrollment(@CurrentAccount Account account, @PathVariable String path, @PathVariable Long id) {
+        Study study = studyRepository.findByPath(path);
+        Event event = eventRepository.findById(id).orElseThrow();
+        eventService.removeEnrollment(event, account);
+        return "redirect:/study/"+ study.getEncodedPath() +"/events/"+ event.getId();
+    }
+
     @GetMapping("/events/{id}/edit")
     public String updateEventForm(@CurrentAccount Account account,
                                   @PathVariable String path, @PathVariable Long id, Model model) {
